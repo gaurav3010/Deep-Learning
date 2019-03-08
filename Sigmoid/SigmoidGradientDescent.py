@@ -3,7 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, mean_squared_error
+from tqdm import trange
 
 class SigmoidNeuron:
     
@@ -25,11 +26,14 @@ class SigmoidNeuron:
         y_pred = self.sigmoid(self.perceptron(x))
         return (y_pred - y) * y_pred * (1 - y_pred)
     
-    def fit(self, X, Y, epochs = 1, learning_rate = 1):
+    def fit(self, X, Y, epochs = 1, learning_rate = 1, display_loss=False):
         self.w = np.random.rand(1, X.shape[1])
         self.b = 0
         
-        for i in range(epochs):
+        if display_loss:
+            loss = {}
+        
+        for i in trange(epochs):
             dw = 0
             db = 0
             for x, y in zip(X, Y):
@@ -37,6 +41,16 @@ class SigmoidNeuron:
                 db += self.grad_b(x, y)
             self.w -= learning_rate * dw
             self.b -= learning_rate * db
+            
+            if display_loss:
+                Y_pred = self.sigmoid(self.perceptron(X))
+                loss[i] = mean_squared_error(Y_pred, Y)
+        if display_loss:
+            plt.plot(loss.values())
+            plt.xlabel('Epochs')
+            plt.ylabel('Mean Squraed Error')
+            plt.show()
+            
     def predict(self, X):
         Y_pred = []
         for x in X:
@@ -71,7 +85,7 @@ Y_binarised_train = (Y_scaled_train > scaled_threshold).astype('int').ravel()
 Y_binarised_test = (Y_scaled_test > scaled_threshold).astype('int').ravel()
 
 sn = SigmoidNeuron()
-sn.fit(X_scaled_train, Y_scaled_train, epochs=1000, learning_rate=0.02)
+sn.fit(X_scaled_train, Y_scaled_train, epochs= 1400, learning_rate=0.014, display_loss=True)
 
 Y_pred_train = sn.predict(X_scaled_train)
 Y_pred_test = sn.predict(X_scaled_test)
