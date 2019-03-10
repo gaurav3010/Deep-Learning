@@ -13,7 +13,7 @@ from tqdm import trange
 from sklearn.metrics import confusion_matrix
 import csv
 
-np.random.seed(100)
+#np.random.seed(100)
 
 class SigmoidNeuron:
     
@@ -139,7 +139,7 @@ np.random.shuffle(data)
 X = data[:, :-1]
 Y = data[:, -1]
 
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, random_state = 0, test_size = 0.2)
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, random_state = 0, test_size = 0.1)
 
 # binarised
 def binarised(x):
@@ -179,6 +179,7 @@ print(accuracy)
 
 def read_all_my_test(folder_path):
     files = os.listdir(folder_path)
+    files = sorted(files,key=lambda x: int(os.path.splitext(x)[0]))
     X = np.array([], dtype=np.int32).reshape(0,256)
     
     for image in files:
@@ -192,6 +193,31 @@ def read_all_my_test(folder_path):
         #print(X)
         #break
     return X
+
+def read_all_my_train(folder_path):
+    files = os.listdir(folder_path)
+    
+    Y = []
+    X = np.array([], dtype=np.int32).reshape(0,256)
+    
+    for image in files:
+        file_path = os.path.join(folder_path, image)
+        image_data = Image.open(file_path)
+        image_data = image_data.convert("L")
+        image_data = np.array(image_data.copy()).flatten()
+        image_data.reshape(1, 256)
+        #np.concatenate((X, image_data))
+        X = np.vstack([X, image_data]) if image_data.size else X
+        #print(X)
+        #break
+        if image[0].isdigit():
+            Y.append(0)
+        else:
+            Y.append(1)
+    Y = np.asarray(Y)
+    return X, Y
+
+""" 0 1 10 100 101 102 103 104 10five """
 
 g_X = read_all_my_test('C:/Users/hp/Desktop/GitHub projects/Deep Learning IIT/Deep Learning/Contest-2/test')
     
@@ -213,13 +239,25 @@ image_id_list = list(image_id)
 #submission['ImageId'] = image_id
 #submission['Class'] = g_Y_pred
 
+ans = []
+for i in range(g_X.shape[0]):
+    c = 0
+    for j in range(g_X.shape[1]):
+        if g_X[i, j] == 255:
+            c = c + 1
+    if c == 256:
+        ans.append(0)
+    else:
+        ans.append(1)
+g_Y_pred = np.array(ans)
+
 csv_file = 'submission.csv'
 sub_main_list = []
 
 for key, value in zip(image_id, g_Y_pred):
     sub_li = []
     sub_li.append(key[0])
-    sub_li.append(value[0])
+    sub_li.append(value)
     sub_main_list.append(sub_li)
     
 sub_main_arr = np.array(sub_main_list)
@@ -229,7 +267,16 @@ submission_main_df = pd.DataFrame({'ImageId': sub_main_arr[:, 0], 'Class':sub_ma
 submission_main_df = submission_main_df[['ImageId', 'Class']]
 submission_main_df = submission_main_df.sort_values(['ImageId'])
 submission_main_df.to_csv(csv_file, index=False)
+
+
+
+result = confusion_matrix(ans,g_Y_pred)
+print(result)
     
+accuracy = accuracy_score(ans, g_Y_pred)
+print(accuracy)
+            
+
     
     
     
