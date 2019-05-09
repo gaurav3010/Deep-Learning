@@ -52,7 +52,7 @@ class SN:
         y_pred = self.sigmoid(x, w, b)
         return (y_pred - y) * y_pred * (1 - y_pred)
     
-    def fit(self, X, Y, epochs = 100, eta = 0.01):
+    def fit(self, X, Y, epochs = 100, eta = 0.01, gamma = 0.9):
         self.w_h = []
         self.b_h = []
         self.e_h = []
@@ -68,6 +68,19 @@ class SN:
                 self.w -= eta * dw/X.shape[0]
                 self.b -= eta * db/X.shape[0]
                 self.append_log()
+        
+        if self.algo == 'Momentum':
+            v_w, v_b = 0, 0
+            for i in range(epochs):
+                dw, db = 0, 0
+                for x, y in zip(X, Y):
+                    dw += self.grad_w(x, y)
+                    db += self.grad_b(x, y)
+                v_w = gamma * v_w + eta * dw
+                b_b = gamma * v_b + eta * db
+                self.w = self.w - v_w 
+                self.b = self.b - b_b
+                self.append_log()
                 
     def append_log(self):
         self.w_h.append(self.w)
@@ -81,13 +94,17 @@ class SN:
 X = np.asarray([0.5, 2.5])
 Y = np.asarray([0.2, 0.9])
 
-algo = 'GD'
+algo = 'Momentum'
 
-w_init = -2
-b_init = -2
+#w_init = -2
+#b_init = -2
+
+w_init = -4
+b_init = 0
 
 epochs = 1000
 eta = 1
+gamma = 0.8
 
 w_min = -7
 w_max = 5
