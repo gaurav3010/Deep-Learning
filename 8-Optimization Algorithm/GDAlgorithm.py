@@ -1,4 +1,13 @@
+from mpl_toolkits.mplot3d import Axes3D
+
+from matplotlib import cm
+import matplotlib.colors
+
+from matplotlib import animation, rc
+#from Ipython.display import HTML
+
 import numpy as np
+import matplotlib.pyplot as plt
 
 class SN:
     
@@ -65,6 +74,98 @@ class SN:
         self.b_h.append(self.b)
         self.e_h.append(self.error(self.X, self.Y))
         
+    def print_w_h(self):
+        print(self.w_h)
+        
+
+X = np.asarray([0.5, 2.5])
+Y = np.asarray([0.2, 0.9])
+
+algo = 'GD'
+
+w_init = -2
+b_init = -2
+
+epochs = 1000
+eta = 1
+
+w_min = -7
+w_max = 5
+
+b_min = -5
+b_max = 5
+
+animation_frames = 20
+plot_2d = True 
+plot_3d = False
+
+sn = SN(w_init, b_init, algo)
+sn.fit(X, Y, epochs=epochs, eta=eta)
+plt.plot(sn.e_h)
+plt.plot(sn.w_h)
+plt.plot(sn.b_h)
+plt.show()
+
+def plot_animate_3d(i):
+    i = int(i*(epochs/animation_frames))
+    line1.set_data(sn.w_h[:i+1], sn.b_h[:i+1])
+    line1.set_3d_properties(sn.e_h[:i+1])
+    line2.set_data(sn.w_h[:i+1], sn.b_h[:i+1])
+    line2.set_3d_properties(np.zeros(i+1) - 1)
+    title.set_text('Epochs : {: d}, Error : {:.4f}'.format(i, sn.e_h[i]))
+    return line1, line2, title
+
+if plot_3d:
+    W = np.linspace(w_min, w_max, 256)
+    b = np.linspace(b_min, b_max, 256)
+    WW, BB = np.meshgrid(W, b)
+    Z = sn.error(X, Y, WW, BB)
+    
+    fig = plt.figure(dpi=100)
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(WW, BB, Z, rstride=3, cstride=3, alpha=0.5, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    cset = ax.contourf(WW, BB, Z, 25, zdir='z', offset=-1, alpha=0.6, cmap=cm.coolwarm)
+    ax.set_xlabel('w')
+    ax.set_xlim(w_min - 1, w_max + 1)
+    ax.set_ylabel('b')
+    ax.set_ylim(b_min - 1, b_max + 1)
+    ax.set_zlabel('error')
+    ax.set_zlim(-1, np.max(Z))
+    ax.view_init(elev=25, azim=-75)
+    ax.dist=12
+    title = ax.set_title('Epoch 0')
+    
+if plot_3d:
+    i = 0
+    line1, = ax.plot(sn.w_h[:i+1], sn.b_h[:i+1], sn.e_h[:i+1], color='black', marker='*')
+    line2, = ax.plot(sn.w_h[:i+1], sn.b_h[:i+1], np.zeros(i+1) - 1, color='red', marker='*')
+    anim = animation.FuncAnimation(fig, func=plot_animate_3d, frames=animation_frames)
+    rc('animation', html='jshtml')
+    anim
+    
+    
+if plot_2d:
+    W = np.linspace(w_min, w_max, 256)
+    b = np.linspace(b_min, b_max, 256)
+    WW, BB = np.meshgrid(W, b)
+    Z = sn.error(X, Y, WW, BB)
+    
+    fig = plt.figure(dpi=100)
+    ax = plt.subplot(111)
+    ax.set_xlabel('w')
+    ax.set_xlim(w_min - 1, w_max + 1)
+    ax.set_ylabel('b')
+    ax.set_ylim(b_min - 1, b_max + 1)
+    title = ax.set_title('Epochs 0')
+    cset = plt.contourf(WW, BB, Z, 25, alpha = 0.6, cmap = cm.bwr)
+    plt.show()
+    
+    
+    
+    
+    
+    
+    
     
     
     
