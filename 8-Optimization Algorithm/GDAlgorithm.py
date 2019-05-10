@@ -52,7 +52,7 @@ class SN:
         y_pred = self.sigmoid(x, w, b)
         return (y_pred - y) * y_pred * (1 - y_pred)
     
-    def fit(self, X, Y, epochs = 100, eta = 0.01, gamma = 0.9):
+    def fit(self, X, Y, epochs = 100, eta = 0.01, gamma = 0.9, mini_batch_size = 1):
         self.w_h = []
         self.b_h = []
         self.e_h = []
@@ -82,6 +82,34 @@ class SN:
                 self.b = self.b - b_b
                 self.append_log()
                 
+        if self.algo == 'NAG':
+            v_w, v_b = 0, 0
+            for i in range(epochs):
+                dw, db = 0, 0
+                for x, y in zip(X, Y):
+                    dw += self.grad_w(x, y, self.w - v_w, self.b - v_b)
+                    db += self.grad_b(x, y, self.w - v_w, self.b - v_b)
+                v_w = v_w + eta*dw
+                v_b = v_b + eta*db
+                self.w = self.w - v_w
+                self.b = self.b - v_b
+                self.append_log()
+                
+        if self.algo == 'MiniBatch':
+            for i in range(epochs):
+                dw, db = 0, 0
+                points_seen = 0
+                for x, y in zip(X, Y):
+                    dw += self.grad_w(x, y)
+                    db += self.grad_b(x, y)
+                    points_seen += 1
+                    if points_seen % mini_batch_size == 0:
+                        self.w -= eta * dw/mini_batch_size
+                        self.b -= eta * db/mini_batch_size
+                        self.append_log()
+                        dw, db = 0, 0
+                
+                
     def append_log(self):
         self.w_h.append(self.w)
         self.b_h.append(self.b)
@@ -91,18 +119,21 @@ class SN:
         print(self.w_h)
         
 
-X = np.asarray([0.5, 2.5])
-Y = np.asarray([0.2, 0.9])
+X = np.asarray([3.5, 0.35, 3.2, -2.0, 1.5, -0.5])
+Y = np.asarray([0.5, 0.5, 0.5, 0.5, 0.1, 0.3])
 
-algo = 'Momentum'
+algo = 'MiniBatch'
 
 #w_init = -2
 #b_init = -2
 
-w_init = -4
-b_init = 0
+#w_init = -4
+#b_init = 0
 
-epochs = 1000
+w_init = 2.1
+b_init = 4.0
+
+epochs = 100
 eta = 1
 gamma = 0.8
 
@@ -112,15 +143,19 @@ w_max = 5
 b_min = -5
 b_max = 5
 
+mini_batch_size = 6
+
 animation_frames = 20
 plot_2d = True 
 plot_3d = False
 
 sn = SN(w_init, b_init, algo)
-sn.fit(X, Y, epochs=epochs, eta=eta)
-plt.plot(sn.e_h)
-plt.plot(sn.w_h)
-plt.plot(sn.b_h)
+sn.fit(X, Y, epochs=epochs, eta=eta, gamma=gamma, mini_batch_size=mini_batch_size )
+plt.plot(sn.e_h, label='Error')
+plt.plot(sn.w_h, label = 'W weight')
+plt.plot(sn.b_h, label = 'b weight')
+legend = plt.legend(loc='upper center', shadow=True) 
+legend.get_frame()
 plt.show()
 
 def plot_animate_3d(i):
