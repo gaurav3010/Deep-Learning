@@ -52,7 +52,7 @@ class SN:
         y_pred = self.sigmoid(x, w, b)
         return (y_pred - y) * y_pred * (1 - y_pred)
     
-    def fit(self, X, Y, epochs = 100, eta = 0.01, gamma = 0.9, mini_batch_size = 1):
+    def fit(self, X, Y, epochs = 100, eta = 0.01, gamma = 0.9, mini_batch_size = 1, eps=1e-8, beta=0.9, beta1=0.9, beta2=0.9):
         self.w_h = []
         self.b_h = []
         self.e_h = []
@@ -69,7 +69,7 @@ class SN:
                 self.b -= eta * db/X.shape[0]
                 self.append_log()
         
-        if self.algo == 'Momentum':
+        elif self.algo == 'Momentum':
             v_w, v_b = 0, 0
             for i in range(epochs):
                 dw, db = 0, 0
@@ -82,7 +82,7 @@ class SN:
                 self.b = self.b - b_b
                 self.append_log()
                 
-        if self.algo == 'NAG':
+        elif self.algo == 'NAG':
             v_w, v_b = 0, 0
             for i in range(epochs):
                 dw, db = 0, 0
@@ -95,7 +95,7 @@ class SN:
                 self.b = self.b - v_b
                 self.append_log()
                 
-        if self.algo == 'MiniBatch':
+        elif self.algo == 'MiniBatch':
             for i in range(epochs):
                 dw, db = 0, 0
                 points_seen = 0
@@ -108,7 +108,54 @@ class SN:
                         self.b -= eta * db/mini_batch_size
                         self.append_log()
                         dw, db = 0, 0
-                
+                        
+        elif self.algo == 'AdaGrad':
+            v_w, v_b = 0, 0
+            for i in range(epochs):
+                dw, db = 0, 0
+                for x, y in zip(X, Y):
+                    dw += self.grad_w(x, y)
+                    db += self.grad_b(x, y)
+                v_w += dw ** 2
+                v_b += db ** 2
+                self.w -= (eta / np.sqrt(v_w) + eps) * dw
+                self.b -= (eta / np.sqrt(v_b) + eps) * db
+                self.append_log()
+        
+        elif self.algo == 'RMSProp':
+            v_w, v_b = 0, 0
+            for i in range(epochs):
+                dw, db = 0, 0
+                for x, y in zip(X, Y):
+                    dw += self.grad_w(x, y)
+                    db += self.grad_b(x, y)
+                v_w = beta * v_w + (1 - beta) * dw ** 2
+                v_b = beta * v_b + (1 - beta) * db ** 2
+                self.w -= (eta / np.sqrt(v_w) + eps) * dw
+                self.b -= (eta / np.sqrt(v_b) + eps) * db
+                self.append_log()
+        
+        elif self.algo == 'Adam':
+            v_w, v_b = 0, 0
+            m_w, m_b = 0, 0
+            num_updates = 0
+            for i in range(epochs):
+                dw, db = 0, 0
+                for x, y in zip(X, Y):
+                    dw = self.grad_w(x, y)
+                    db = self.grad_b(x, y)
+                    num_updates += 1
+                    m_w = beta1 * m_w + (1 - beta1) * dw
+                    m_b = beta1 * m_b + (1 - beta1) * db
+                    v_w = beta2 * v_w + (1 - beta2) * dw
+                    v_b = beta2 * v_b + (1 - beta2) * db
+                    m_w_c = m_w / (1 - np.power(beta1, num_updates))
+                    m_b_c = m_b / (1 - np.power(beta1, num_updates))
+                    v_w_c = v_w / (1 - np.power(beta2, num_updates))
+                    v_b_c = v_b / (1 - np.power(beta2, num_updates))
+                self.w -= (eta / np.sqrt(v_w_c) + eps) * m_w_c
+                self.b -= (eta / np.sqrt(v_b_c) + eps) * m_b_c
+                self.append_log()
                 
     def append_log(self):
         self.w_h.append(self.w)
@@ -122,7 +169,7 @@ class SN:
 X = np.asarray([3.5, 0.35, 3.2, -2.0, 1.5, -0.5])
 Y = np.asarray([0.5, 0.5, 0.5, 0.5, 0.1, 0.3])
 
-algo = 'MiniBatch'
+algo = 'Adam'
 
 #w_init = -2
 #b_init = -2
@@ -130,12 +177,12 @@ algo = 'MiniBatch'
 #w_init = -4
 #b_init = 0
 
-w_init = 2.1
+w_init = -6
 b_init = 4.0
 
-epochs = 100
-eta = 1
-gamma = 0.8
+epochs = 200
+eta = 0.1
+gamma = 0.9
 
 w_min = -7
 w_max = 5
@@ -149,14 +196,30 @@ animation_frames = 20
 plot_2d = True 
 plot_3d = False
 
+
 sn = SN(w_init, b_init, algo)
 sn.fit(X, Y, epochs=epochs, eta=eta, gamma=gamma, mini_batch_size=mini_batch_size )
 plt.plot(sn.e_h, label='Error')
 plt.plot(sn.w_h, label = 'W weight')
 plt.plot(sn.b_h, label = 'b weight')
 legend = plt.legend(loc='upper center', shadow=True) 
+legend.get_frame()  
+plt.show()
+
+"""
+sn = SN(w_init, b_init, algo)
+sn.fit(X, Y, epochs=epochs, eta=eta, gamma=gamma, mini_batch_size=mini_batch_size )
+plt.plot(sn.e_h, 'r', label='Error')
+#plt.plot(sn.w_h, label = 'W weight')
+#plt.plot(sn.b_h, label = 'b weight')
+w_diff = [t - s for t, s in zip(sn.w_h, sn.w_h[1:])]
+b_diff = [t - s for t, s in zip(sn.b_h, sn.b_h[1:])]
+plt.plot(w_diff, 'b--', label = 'W weight')
+plt.plot(b_diff, 'g--', label = 'b weight')
+legend = plt.legend(loc='upper center', shadow=True) 
 legend.get_frame()
 plt.show()
+"""
 
 def plot_animate_3d(i):
     i = int(i*(epochs/animation_frames))
